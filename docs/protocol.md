@@ -64,9 +64,16 @@ ESPHome.
 
 Permitted ranges, write semantics, and several byte assignments are unresolved.
 In particular, DP113=0x40 appeared during a batch of function-menu changes and
-cleared when reverted; that does not identify a particular fault bit. Zero
-values alone did not establish mappings for E8 time, air gap, or exhaust fan
-information. No remote writes to these settings are included.
+cleared when reverted; that does not identify a particular fault bit. The
+owner later recalled that it **may have coincided with a missing water-temperature
+probe fault**, but did not remember the panel's error code. Switching temperature
+control from Room to Water was one of several changes in that batch. Treat
+**bit 0x40 (bit 6) = water-temperature probe fault** as an **unconfirmed hypothesis**,
+not a decoded alarm. Confirmation needs a capture of the bitmap alongside the
+exact panel fault code/message and the active temperature-control mode.
+
+Zero values alone did not establish mappings for E8 time, air gap, or exhaust
+fan information. No remote writes to these settings are included.
 
 ## Mapping another phase
 
