@@ -1,0 +1,173 @@
+# Verified on one Grand Teton ATmega64A / Tuya MCU v1.0.0 board.
+# See docs/protocol.md before adapting this to another stove.
+logger:
+  logs:
+    uart_debug: WARN
+    tuya: INFO
+
+globals:
+  - id: stove_last_rx_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
+
+uart:
+  id: stove_uart
+  tx_pin: ${stove_tx_pin}
+  rx_pin: ${stove_rx_pin}
+  baud_rate: 9600
+  debug:
+    direction: BOTH
+    dummy_receiver: false
+    after:
+      timeout: 10ms
+      bytes: 64
+    sequence:
+      - lambda: |-
+          uart::UARTDebug::log_hex(direction, bytes, ' ');
+          if (direction == uart::UART_DIRECTION_RX && !bytes.empty()) {
+            id(stove_last_rx_ms) = millis();
+          }
+
+tuya:
+  id: stove_tuya
+  uart_id: stove_uart
+
+climate:
+  - platform: tuya
+    tuya_id: stove_tuya
+    id: stove_climate
+    name: "Stove"
+    switch_datapoint: 1
+    target_temperature_datapoint: 102
+    current_temperature_datapoint: 107
+    reports_fahrenheit: false
+    visual:
+      temperature_step:
+        target_temperature: 1
+        current_temperature: 1
+    # Do not use Tuya climate active_state for DP112: that option also WRITES
+    # to the status enum when commanding HEAT. This callback only changes the
+    # published action, before ESPHome notifies API/web clients (2026.7.4).
+    on_state:
+      - lambda: |-
+          const bool link = stove_reporting::link_ready(
+              id(stove_tuya).get_init_state() == tuya::TuyaInitState::INIT_DONE,
+              id(stove_last_rx_ms), millis());
+          x.action = x.mode == climate::CLIMATE_MODE_OFF ? climate::CLIMATE_ACTION_OFF :
+              stove_reporting::confirmed_heating(x.mode == climate::CLIMATE_MODE_HEAT, link, id(stove_operating_state_code).state)
+                  ? climate::CLIMATE_ACTION_HEATING : climate::CLIMATE_ACTION_IDLE;
+          // HA has no unknown action: unmapped phases / link loss use IDLE.
+          // Stove Operating State explicitly reports the missing information.
+
+# Only the enum values observed on this stove are exposed. Updates wait for
+# the MCU's report; selecting a preset or ECO mode does not send DP1/power.
+select:
+  - platform: tuya
+    tuya_id: stove_tuya
+    id: stove_heat_preset
+    name: "Stove Heat Preset"
+    enum_datapoint: 101
+    optimistic: false
+    options:
+      0: "P1"
+      1: "P2"
+      2: "P3"
+      3: "P4"
+  - platform: tuya
+    tuya_id: stove_tuya
+    id: stove_eco_mode
+    name: "Stove ECO Mode"
+    enum_datapoint: 104
+    optimistic: false
+    options:
+      0: "ECO1"
+      1: "ECO2"
+
+
+binary_sensor:
+  - platform: tuya
+    tuya_id: stove_tuya
+    id: stove_power
+    name: "Stove Power"
+    sensor_datapoint: 1
+  - platform: template
+    id: stove_rx_activity
+    name: "Stove UART RX Activity"
+    device_class: connectivity
+    entity_category: diagnostic
+    lambda: |-
+      return id(stove_last_rx_ms) != 0 && (millis() - id(stove_last_rx_ms)) < 45000;
+    on_state:
+      - lambda: id(stove_climate).publish_state();
+  - platform: template
+    id: stove_initialized
+    name: "Stove Tuya Initialized"
+    entity_category: diagnostic
+    lambda: return id(stove_tuya).get_init_state() == tuya::TuyaInitState::INIT_DONE;
+    on_state:
+      - lambda: id(stove_climate).publish_state();
+
+
+text_sensor:
+  - platform: template
+    name: "Stove Operating State"
+    icon: mdi:fire
+    update_interval: 1s
+    lambda: |-
+      return stove_reporting::operating_state(
+          stove_reporting::link_ready(
+              id(stove_tuya).get_init_state() == tuya::TuyaInitState::INIT_DONE,
+              id(stove_last_rx_ms), millis()),
+          id(stove_operating_state_code).state);
+
+sensor:
+  - platform: tuya
+    tuya_id: stove_tuya
+    id: stove_operating_state_code
+    name: "Stove Operating State Code"
+    sensor_datapoint: 112
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    on_value:
+      - lambda: id(stove_climate).publish_state();
+  - platform: tuya
+    tuya_id: stove_tuya
+    name: "Stove MCU Status Bitmap"
+    sensor_datapoint: 113
+    entity_category: diagnostic
+    accuracy_decimals: 0
+  - platform: tuya
+    tuya_id: stove_tuya
+    name: "Stove Running Time"
+    sensor_datapoint: 122
+    unit_of_measurement: "h"
+    device_class: duration
+    state_class: total_increasing
+    entity_category: diagnostic
+    accuracy_decimals: 0
+
+  - platform: tuya
+    tuya_id: stove_tuya
+    name: "Stove Room Temperature"
+    sensor_datapoint: 107
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 0
+  - platform: tuya
+    tuya_id: stove_tuya
+    name: "Stove Pipe Temperature"
+    sensor_datapoint: 108
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 0
+  - platform: tuya
+    tuya_id: stove_tuya
+    name: "Stove Protect Temperature"
+    sensor_datapoint: 109
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 0

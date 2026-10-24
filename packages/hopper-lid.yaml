@@ -1,0 +1,35 @@
+# A separate dry contact only. Preserve the stove's factory interlock.
+substitutions:
+  hopper_lid_pin: GPIO5
+  # true = switch closes to GND when lid is OPEN (tested arrangement).
+  # false = switch closes to GND when lid is CLOSED.
+  hopper_lid_inverted: "true"
+
+esphome:
+  on_boot:
+    # Enable the guard before GPIO setup or the first ADC sample. Until the
+    # switch reports its initial state, a co-installed level sensor is unknown.
+    priority: 900
+    then:
+      - lambda: id(hopper_lid_enabled) = true;
+
+binary_sensor:
+  - platform: gpio
+    id: hopper_lid_open
+    name: "Hopper Lid"
+    device_class: opening
+    # Populate the shared guard on boot, even if the switch never moves.
+    trigger_on_initial_state: true
+    pin:
+      number: ${hopper_lid_pin}
+      mode:
+        input: true
+        pullup: true
+      inverted: ${hopper_lid_inverted}
+    filters:
+      - delayed_on_off: 50ms
+    on_state:
+      - lambda: |-
+          id(hopper_lid_known) = true;
+          id(hopper_lid_is_open) = x;
+          id(hopper_lid_changed_ms) = millis();

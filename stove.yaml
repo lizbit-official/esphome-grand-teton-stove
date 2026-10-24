@@ -1,0 +1,30 @@
+# Minimal controller: no hopper sensors, room add-ons, or onboard LED required.
+# Disconnect the original Wi-Fi module before using this transmitting build.
+substitutions:
+  device_name: grand-teton-stove
+  friendly_name: Grand Teton Stove
+  stove_tx_pin: GPIO37
+  stove_rx_pin: GPIO38
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  min_version: 2026.7.4
+  name_add_mac_suffix: false
+  includes:
+    - includes/stove-reporting.h
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+logger:
+  hardware_uart: UART0
+
+packages:
+  network: !include packages/network.yaml
+  stove: !include packages/stove.yaml
+  hopper_state: !include packages/hopper-common.yaml
+  # Optional authenticated local web UI (requires web_* secrets):
+  # web: !include packages/web-server.yaml

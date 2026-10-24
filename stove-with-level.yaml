@@ -1,0 +1,12 @@
+# Standalone example; do not flash until pins and secrets match your installation.
+packages:
+  base: !include stove.yaml
+  hopper_level: !include packages/hopper-level.yaml
+
+# Estimated distance/percentage stay unknown until calibrated. Raw voltage
+# is available immediately. Replace these with YOUR measured pellet values.
+substitutions:
+  hopper_reference_voltage: "0.0"
+  hopper_reference_distance_cm: "0.0"
+  hopper_full_distance_cm: "4.0"
+  hopper_empty_distance_cm: "30.0"

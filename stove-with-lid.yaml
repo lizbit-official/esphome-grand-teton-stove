@@ -1,0 +1,4 @@
+# Standalone example; do not flash until pins and secrets match your installation.
+packages:
+  base: !include stove.yaml
+  hopper_lid: !include packages/hopper-lid.yaml

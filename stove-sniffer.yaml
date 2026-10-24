@@ -1,0 +1,44 @@
+# RECEIVE ONLY: both UARTs have RX pins and neither has a TX pin.
+# No Tuya component or climate controls. See docs/wiring.md before connecting.
+substitutions:
+  device_name: grand-teton-sniffer
+  friendly_name: Grand Teton Sniffer
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  min_version: 2026.7.4
+  name_add_mac_suffix: false
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+packages:
+  network: !include packages/network.yaml
+
+logger:
+  hardware_uart: UART0
+
+uart:
+  - id: stove_to_module
+    rx_pin: GPIO38
+    baud_rate: 9600
+    debug:
+      direction: RX
+      dummy_receiver: true
+      debug_prefix: "[STOVE>MOD] "
+      after:
+        timeout: 10ms
+        bytes: 64
+  - id: module_to_stove
+    rx_pin: GPIO37
+    baud_rate: 9600
+    debug:
+      direction: RX
+      dummy_receiver: true
+      debug_prefix: "[MOD>STOVE] "
+      after:
+        timeout: 10ms
+        bytes: 64

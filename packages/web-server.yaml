@@ -1,0 +1,9 @@
+# Optional. This authenticates HTTP access; it does not add HTTPS.
+# Keep this local and do not expose it through Internet port forwarding.
+web_server:
+  port: 80
+  version: 3
+  include_internal: false
+  auth:
+    username: !secret web_username
+    password: !secret web_password

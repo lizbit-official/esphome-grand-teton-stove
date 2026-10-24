@@ -1,0 +1,19 @@
+# Internal shared state loaded once by stove.yaml so either optional package
+# can be enabled independently. No physical GPIO or entity is created here.
+globals:
+  - id: hopper_lid_enabled
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: hopper_lid_known
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: hopper_lid_is_open
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: hopper_lid_changed_ms
+    type: uint32_t
+    restore_value: false
+    initial_value: "0"
