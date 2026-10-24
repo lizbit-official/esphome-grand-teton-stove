@@ -1,9 +1,11 @@
 # Observed Tuya MCU protocol
 
 Serial transport: 9600 baud, 8N1, 5 V logic at the stove header. The tested
-Grand Teton controller is an ATmega64A, Tuya MCU firmware 1.0.0, product ID
-`mkawgq5ywi0feooe`. These observations do not establish compatibility with all
-Grand Teton or Cleveland Iron Works stoves.
+Grand Teton Collection **Gros Ventre F500460** controller is an ATmega64A,
+Tuya MCU firmware 1.0.0, product ID `mkawgq5ywi0feooe`. The retail listing also
+identifies this stove as N60WTS; see [tested stove details](../README.md#tested-stove-and-compatibility).
+These observations do not establish compatibility with other board revisions,
+other Grand Teton models, or Cleveland Iron Works stoves.
 
 ## Exposed datapoints
 

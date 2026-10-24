@@ -1,8 +1,10 @@
-# ESPHome Grand Teton Stove
+# ESPHome Grand Teton Pellet Stove — Gros Ventre F500460
 
 Local Home Assistant control for a Grand Teton pellet stove through its Tuya
-MCU UART. Replace the original Wi-Fi module with an ESP32 and control heating,
-temperature, heat preset, and ECO mode without the vendor cloud.
+MCU UART. Developed and hardware-tested on the **Grand Teton Collection Gros
+Ventre F500460**, sold as the **2200 sq. ft. pellet stove with a 60 lb. hopper**.
+Replace the original Wi-Fi module with an ESP32 and control heating, temperature,
+heat preset, and ECO mode without the vendor cloud.
 
 The **pellet level sensor and hopper lid/door switch are optional and independent**.
 The basic controller needs neither.
@@ -28,12 +30,30 @@ room temperature/humidity sensor in the screenshot is not part of the examples.*
 | Optional hopper level | Sharp GP2Y0A41SK0F voltage, estimated distance, and estimated fill height |
 | Optional hopper lid | Separate dry-contact switch; also gates level readings when both are installed |
 
-**Compatibility is intentionally narrow.** Hardware operation has been verified
-on one Grand Teton Collection stove with an **ATmega64A**, Tuya MCU firmware
-**1.0.0**, and product ID **`mkawgq5ywi0feooe`**. The exact retail stove model
-has not yet been recorded. Other Grand Teton models and Cleveland Iron Works
-stoves are unverified; a borrowed Cleveland datapoint map did not match this
-board. Check [protocol details](docs/protocol.md) before adapting it.
+## Tested stove and compatibility
+
+| Identifier | Tested installation |
+| --- | --- |
+| Brand / collection | Grand Teton Collection |
+| Stove | Gros Ventre pellet stove |
+| Product number | **F500460** |
+| Retail description | **2200 sq. ft., 60 lb. hopper** |
+| Additional model identifier | **N60WTS**, listed by Tractor Supply for this product |
+| Mainboard MCU | ATmega64A |
+| Tuya MCU firmware | 1.0.0 |
+| Tuya product ID | `mkawgq5ywi0feooe` |
+
+The owner identified the tested stove as the Gros Ventre F500460. The
+[Tractor Supply product listing](https://www.tractorsupply.com/tsc/product/grand-teton-collection-gros-ventre-pellet-stove-1-500-to-2-200-sq-ft)
+also associates it with model **N60WTS**.
+
+Other models in the Grand Teton Collection line **may be compatible if they use
+the same controller and protocol, but have not been tested**. Even the same
+retail model can have different board revisions. Compare the wiring, MCU
+identity, and [observed datapoints](docs/protocol.md) before enabling writes.
+Compatibility reports with an exact model and board/firmware details are welcome.
+Cleveland Iron Works stoves are also unverified; a borrowed Cleveland datapoint
+map did not match this board.
 
 The hardware-tested baseline used ESPHome **2026.7.4** and an ESP32-S3-WROOM-1
 development board with 2 MB quad PSRAM. Dependencies are pinned to that version.

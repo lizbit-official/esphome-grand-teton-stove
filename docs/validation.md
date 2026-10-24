@@ -2,6 +2,9 @@
 
 ## Hardware observations, October 23–24, 2026
 
+The owner identified the stove as the **Grand Teton Collection Gros Ventre
+F500460**, sold as the **2200 sq. ft. model with a 60 lb. hopper**. The retail
+listing also identifies it as N60WTS; see [tested stove details](../README.md#tested-stove-and-compatibility).
 The original installation used ESPHome 2026.7.4, ESP-IDF 5.5.5, an ESP32-S3
 development board, a level shifter, and the stove's ATmega64A/Tuya MCU v1.0.0.
 The ESP was USB-powered and the original Wi-Fi module disconnected in
@@ -63,7 +66,7 @@ separate from these build checks.
 
 ## Still needed
 
-- Exact retail stove model, PCB revision, carrier details, and level-shifter part.
+- PCB revision, carrier details, and level-shifter part.
 - Numeric phase captures for preheating, feeding, lighting, normal firing,
   ECO1, shutdown, and cooldown.
 - Complete shutdown to cold standby and a broader power/network outage matrix.
