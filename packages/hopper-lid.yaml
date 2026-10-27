@@ -33,3 +33,5 @@ binary_sensor:
           id(hopper_lid_known) = true;
           id(hopper_lid_is_open) = x;
           id(hopper_lid_changed_ms) = millis();
+          if (stove_reporting::hopper_invalidation_callback() != nullptr)
+            stove_reporting::hopper_invalidation_callback()();

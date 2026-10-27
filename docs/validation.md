@@ -64,6 +64,33 @@ physical open/close cycle. Host tests and all configuration-composition checks
 also passed. Physical verification of the refactored public packages remains
 separate from these build checks.
 
+## Hopper filtering update, October 27, 2026
+
+The reusable reporting helper now covers a 31-sample median, whole-percent
+publication every 30 seconds, reset on invalid/lid readings, and immediate
+recovery. Voltage/distance use independent 15-second diagnostic filters.
+Host regression tests include outliers, refill resets, invalid input, duplicate
+suppression, reporting cadence, and timer wraparound.
+
+An installation-specific history review covered October 23–26: about 180,000
+voltage and 129,000 percentage records. Its confirmed empty plateau supported
+keeping that installation's calibration. Those measured endpoints are not
+public defaults; the public estimate still requires the user's calibration.
+A replay through the C++ median reduced level changes substantially, and the
+owner's running controller was verified through API, web UI, and HA.
+
+The public sensor packages keep lid-only and level-only builds independent.
+The lid invokes an optional invalidation callback only when the level package
+is installed; initialization runs before the GPIO's first state report.
+
+ESPHome 2026.7.4 configuration and full firmware compilation passed for all
+five example variants, plus the combined calibrated hopper with authenticated
+web UI. Host tests passed with `-Wall -Wextra -Werror`. The owner's deployed
+controller remained in Heating/ECO2 after the diagnostic update; live API, HA,
+and web checks confirmed preserved entities and slower diagnostic updates.
+The public packages were build-tested; this update did not include a new
+physical lid-switch test.
+
 ## Still needed
 
 - PCB revision, carrier details, and level-shifter part.

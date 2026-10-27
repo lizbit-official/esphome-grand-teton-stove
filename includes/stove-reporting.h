@@ -1,5 +1,8 @@
 #pragma once
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cmath>
 #include <cstdint>
 #include <string>
@@ -55,6 +58,94 @@ inline float estimated_pellet_level(float volts, float reference_volts, float re
       full_cm < 0 || empty_cm <= full_cm) return NAN;
   const float level = 100.0f * (empty_cm - distance) / (empty_cm - full_cm);
   return level < 0 ? 0 : level > 100 ? 100 : level;
+}
+
+// Feed once per second, after voltage validation and lid gating. The median
+// rejects brief reflections without averaging the old fill into a refill.
+class HopperLevelFilter {
+ public:
+  // Returns true only when the caller should publish result. Invalid input
+  // publishes unknown immediately and clears the entire window. The first
+  // valid sample after settling publishes immediately; subsequent checks
+  // happen every 30 seconds and publish only changed whole percentages.
+  bool update(float level, uint32_t now_ms, float &result) {
+    if (!std::isfinite(level) || level < 0.0f || level > 100.0f) {
+      count_ = next_ = 0;
+      if (has_output_ && !std::isfinite(output_)) return false;
+      has_output_ = true;
+      output_ = result = NAN;
+      return true;
+    }
+    samples_[next_] = level;
+    next_ = (next_ + 1) % samples_.size();
+    if (count_ < samples_.size()) ++count_;
+    if (count_ != 1 && uint32_t(now_ms - last_check_ms_) < 30000) return false;
+    last_check_ms_ = now_ms;
+    auto ordered = samples_;
+    std::sort(ordered.begin(), ordered.begin() + count_);
+    float median = ordered[count_ / 2];
+    if (count_ % 2 == 0) median = (median + ordered[count_ / 2 - 1]) / 2.0f;
+    const float rounded = std::round(median);
+    if (has_output_ && rounded == output_) return false;
+    has_output_ = true;
+    output_ = result = rounded;
+    return true;
+  }
+
+ private:
+  std::array<float, 31> samples_{};
+  std::size_t count_{0};
+  std::size_t next_{0};
+  uint32_t last_check_ms_{0};
+  bool has_output_{false};
+  float output_{NAN};
+};
+
+// One hopper on this controller; share its window between the ADC and lid
+// callbacks. A function-local instance avoids ESPHome globals being declared
+// before custom include files, and starts fresh after each ESP reboot.
+inline HopperLevelFilter &hopper_level_filter() {
+  static HopperLevelFilter filter;
+  return filter;
+}
+
+// Rate-limit diagnostics without hiding unknown/recovery transitions. This
+// runs after the level calculation so that its one-second sampling is intact.
+class HopperDiagnosticFilter {
+ public:
+  bool update(float value, uint32_t now_ms, float &result) {
+    const bool valid = std::isfinite(value);
+    if (has_output_ && valid == was_valid_ &&
+        (!valid || uint32_t(now_ms - last_publish_ms_) < 15000)) return false;
+    has_output_ = true;
+    was_valid_ = valid;
+    last_publish_ms_ = now_ms;
+    result = valid ? value : NAN;
+    return true;
+  }
+
+ private:
+  bool has_output_{false};
+  bool was_valid_{false};
+  uint32_t last_publish_ms_{0};
+};
+
+inline HopperDiagnosticFilter &hopper_voltage_filter() {
+  static HopperDiagnosticFilter filter;
+  return filter;
+}
+
+inline HopperDiagnosticFilter &hopper_distance_filter() {
+  static HopperDiagnosticFilter filter;
+  return filter;
+}
+
+// The lid package can invalidate co-installed level entities without taking
+// a dependency on them. Level-only and lid-only packages remain independent.
+using HopperInvalidationCallback = void (*)();
+inline HopperInvalidationCallback &hopper_invalidation_callback() {
+  static HopperInvalidationCallback callback = nullptr;
+  return callback;
 }
 
 }  // namespace stove_reporting

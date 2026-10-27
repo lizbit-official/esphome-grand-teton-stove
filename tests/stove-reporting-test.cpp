@@ -62,5 +62,44 @@ int main() {
   // Calibrated geometric endpoints within the sensor range clamp normally.
   assert(estimated_pellet_level(2.0f, 0.444f, 23, 6, 25) == 100);
   assert(estimated_pellet_level(0.35f, 0.444f, 23, 6, 25) == 0);
+  HopperLevelFilter filter;
+  float output = 123.0f;
+  assert(filter.update(NAN, 0, output) && std::isnan(output));
+  assert(!filter.update(NAN, 1000, output));
+  assert(filter.update(50.2f, 3000, output) && output == 50.0f);
+  // A brief reflection and sub-percent noise must not chatter or drag the
+  // median upward. No ordinary update may publish inside the 30 s interval.
+  for (uint32_t sec = 1; sec <= 30; ++sec) {
+    float sample = sec == 15 ? 99.0f : (sec % 2 ? 49.8f : 50.2f);
+    assert(!filter.update(sample, 3000 + sec * 1000, output));
+  }
+  for (uint32_t sec = 31; sec < 60; ++sec)
+    assert(!filter.update(48.2f, 3000 + sec * 1000, output));
+  assert(filter.update(48.2f, 63000, output) && output == 48.0f);
+  // Opening and closing the lid clears all old samples, even inside the
+  // reporting interval: a refill must not blend into the previous low level.
+  assert(filter.update(NAN, 64000, output) && std::isnan(output));
+  assert(filter.update(100.0f, 67000, output) && output == 100.0f);
+  assert(filter.update(level(0.0f), 68000, output) && std::isnan(output));
+  assert(filter.update(0.0f, 69000, output) && output == 0.0f);
+  // Reporting cadence remains correct across the millis() rollover.
+  HopperLevelFilter wrap_filter;
+  assert(wrap_filter.update(80.0f, before_wrap, output) && output == 80.0f);
+  for (uint32_t sec = 1; sec < 30; ++sec)
+    assert(!wrap_filter.update(79.0f, before_wrap + sec * 1000, output));
+  assert(wrap_filter.update(79.0f, before_wrap + 30000, output) && output == 79.0f);
+
+  HopperDiagnosticFilter diagnostic;
+  assert(diagnostic.update(0.6f, 100, output) && output == 0.6f);
+  assert(!diagnostic.update(0.7f, 15099, output));
+  assert(diagnostic.update(0.7f, 15100, output) && output == 0.7f);
+  assert(diagnostic.update(NAN, 15101, output) && std::isnan(output));
+  assert(!diagnostic.update(NAN, 15102, output));
+  assert(diagnostic.update(1.7f, 18101, output) && output == 1.7f);
+  assert(!diagnostic.update(1.6f, 18102, output));
+  HopperDiagnosticFilter diagnostic_wrap;
+  assert(diagnostic_wrap.update(1.0f, before_wrap, output));
+  assert(!diagnostic_wrap.update(0.9f, before_wrap + 14999, output));
+  assert(diagnostic_wrap.update(0.9f, before_wrap + 15000, output));
   std::cout << "Stove reporting tests passed\n";
 }

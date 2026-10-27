@@ -8,6 +8,23 @@ substitutions:
   hopper_full_distance_cm: "4.0"
   hopper_empty_distance_cm: "30.0"
 
+esphome:
+  on_boot:
+    # Register before the GPIO's initial state; no callback is installed when
+    # this optional package is absent.
+    priority: 800
+    then:
+      - lambda: |-
+          stove_reporting::hopper_invalidation_callback() = []() {
+            float value;
+            if (stove_reporting::hopper_level_filter().update(NAN, millis(), value))
+              id(hopper_pellet_level).publish_state(value);
+            if (stove_reporting::hopper_voltage_filter().update(NAN, millis(), value))
+              id(hopper_ir_voltage).publish_state(value);
+            if (stove_reporting::hopper_distance_filter().update(NAN, millis(), value))
+              id(hopper_pellet_distance).publish_state(value);
+          };
+
 sensor:
   - platform: template
     id: hopper_pellet_level
@@ -26,9 +43,18 @@ sensor:
     entity_category: diagnostic
     accuracy_decimals: 1
     update_interval: never
-  - platform: adc
+  - platform: template
     id: hopper_ir_voltage
     name: "Hopper IR Voltage"
+    unit_of_measurement: V
+    device_class: voltage
+    state_class: measurement
+    entity_category: diagnostic
+    accuracy_decimals: 3
+    update_interval: never
+  - platform: adc
+    id: hopper_ir_sample
+    internal: true
     pin: ${hopper_adc_pin}
     attenuation: 12db
     samples: 16
@@ -48,8 +74,15 @@ sensor:
           return x;
     on_value:
       - lambda: |-
-          id(hopper_pellet_distance).publish_state(stove_reporting::estimated_pellet_distance_cm(
-              x, ${hopper_reference_voltage}, ${hopper_reference_distance_cm}));
-          id(hopper_pellet_level).publish_state(stove_reporting::estimated_pellet_level(
+          // Fast internal samples drive the median even when exposed
+          // diagnostics are waiting for their next 15-second publication.
+          float value;
+          if (stove_reporting::hopper_level_filter().update(stove_reporting::estimated_pellet_level(
               x, ${hopper_reference_voltage}, ${hopper_reference_distance_cm},
-              ${hopper_full_distance_cm}, ${hopper_empty_distance_cm}));
+              ${hopper_full_distance_cm}, ${hopper_empty_distance_cm}), millis(), value))
+            id(hopper_pellet_level).publish_state(value);
+          if (stove_reporting::hopper_voltage_filter().update(x, millis(), value))
+            id(hopper_ir_voltage).publish_state(value);
+          if (stove_reporting::hopper_distance_filter().update(stove_reporting::estimated_pellet_distance_cm(
+              x, ${hopper_reference_voltage}, ${hopper_reference_distance_cm}), millis(), value))
+            id(hopper_pellet_distance).publish_state(value);

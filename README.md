@@ -201,6 +201,26 @@ temperature readings use Celsius; HA handles display conversion.
 
 </details>
 
+## Hopper reporting cadence
+
+The optional pellet percentage uses a rolling median of 31 one-second samples
+and publishes changed whole percentages at most every 30 seconds. Short
+reflections no longer produce a rapidly changing percentage. Invalid samples
+clear the window; the first valid sample after recovery starts fresh.
+
+Voltage and distance diagnostics publish every 15 seconds. Unknown states and
+the first valid reading after recovery bypass that interval. Internal sensor
+sampling stays fast, so slowing diagnostics does not slow the pellet filter.
+When a lid switch is installed, opening it immediately invalidates all three
+readings. Closing it starts the existing three-second settling period before
+fresh readings resume. All optional configurations retain the same entity names.
+
+For low-pellet notifications, a useful starting point is below 15% for two
+minutes, once per refill, with rearming above 25%. Use a persistent helper to
+remember whether that refill cycle has already produced an alert. Treat
+unknown or open-lid readings as unavailable, never as zero. Thresholds need
+checking against your own hopper calibration.
+
 ## Calibrate the optional pellet estimate
 
 The level package works without the lid package. Without calibration it exposes

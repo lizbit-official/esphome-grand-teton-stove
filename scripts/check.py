@@ -75,6 +75,10 @@ def main():
             assert ("name: Hopper Lid\n" in config) == has_lid, name
             assert ("name: Hopper Pellet Level Estimated\n" in config) == has_level, name
             assert ("name: Hopper IR Voltage\n" in config) == has_level, name
+            if has_level:
+                assert config.count("id: hopper_ir_sample\n") == 1, name
+                assert config.count("id: hopper_ir_voltage\n") == 1, name
+                assert "Hopper IR Voltage" in config and "update_interval: 200ms" in config, name
             if has_lid:
                 assert re.search(r"trigger_on_initial_state: (?:true|True)", config), name
             if has_lid or has_level:
